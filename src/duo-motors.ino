@@ -13,8 +13,8 @@ const int rHigh = 6;
 const int rLow = 5;
 
 // Default parameters
-int lMotorParams [2] = {130, 255};
-int rMotorParams [2] = {130, 255};
+int leftMotorParams [2] = {130, 255};
+int rightMotorParams [2] = {130, 255};
 
 
 void setup() {
@@ -27,67 +27,60 @@ void setup() {
   pinMode(rLow, OUTPUT);
 }
 
-
 /*
 * CALIBRATION
 */
 
 // Calibrate left motor
 void calibrateLeftMotor(int min, int max){
-  lMotorParams[0] = min;
-  lMotorParams[1] = max;
+  leftMotorParams[0] = min;
+  leftMotorParams[1] = max;
 }
 
 // Calibrate right motor
-void calibrateLeftMotor(int min, int max){
-  lMotorParams[0] = min;
-  lMotorParams[1] = max;
+void calibrateRighttMotor(int min, int max){
+  rightMotorParams[0] = min;
+  rightMotorParams[1] = max;
 }
+
+/*
+* APPLY CALIBRATION
+*/
 
 // Apply linear working curve
 int applyLinearCurve(int min, int max, int value){
-  if(value = 0){
-    return 0
+  if(value == 0){
+    return 0;
   }
   else if(value > 99){
-    return 255
+    return 255;
   }
   else {
       int d = max - min;
-      return round(min + ((value * (max - min))/100));
+      return round(min + ((value * d)/100));
   }
 }
 
 // Apply linear calibration to the left motor
 int leftMotion(int value){
-  return applyLinearCurve(lMotorParams[0], lMotorParams[1], value)
+  return applyLinearCurve(leftMotorParams[0], leftMotorParams[1], value);
 }
 
 // Apply linear calibration to right motor
-int righMotion(int value){
- return applyLinearCurve(rMotorParams[0], eMotorParams[1], value)
+int rightMotion(int value){
+ return applyLinearCurve(rightMotorParams[0], rightMotorParams[1], value);
 }
-
-
 
 /*
 * MOTION CONTROLLERS
+* set goFw(0,0) || goBk(0,0) to stop motion
+* set goFw(100, 100) to have max thrust
+* set goFw(50, 100) to curve left
+* set goFw(100, 50) to curve right
 */
 
-
-// Stop motion
-void Stop(){
-  digitalWrite(lHigh, LOW);
-  digitalWrite(lLow, HIGH);
-  analogWrite(lEnable,0);
-
-  digitalWrite(rHigh, LOW);
-  digitalWrite(rLow, HIGH);
-  analogWrite(rEnable,0);
-}
-
 // Forward motion
-void GoFw(int r, int l){
+void GoFw(int l, int r){
   digitalWrite(lHigh, LOW);
   digitalWrite(lLow, HIGH);
   analogWrite(lEnable, leftMotion(l));
@@ -98,7 +91,7 @@ void GoFw(int r, int l){
 }
 
 // Backwards motion
-void GoBk(int r, int l){
+void GoBk(int l, int r){
   digitalWrite(lHigh, HIGH);
   digitalWrite(lLow, LOW);
   analogWrite(lEnable,leftMotion(l));
@@ -107,6 +100,11 @@ void GoBk(int r, int l){
   digitalWrite(rLow, LOW);
   analogWrite(rEnable,rightMotion(r));
 }
+
+
+/**
+* MAIN
+*/
 
 void loop() {
   GoFw(0, 0); //min 130 mx 255

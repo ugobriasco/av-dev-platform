@@ -16,6 +16,8 @@ const int rLow = 5;
 int leftMotorParams [2] = {130, 255};
 int rightMotorParams [2] = {130, 255};
 
+char rx_byte = 0;
+
 
 void setup() {
   Serial.begin(9600);
@@ -88,6 +90,8 @@ void GoFw(int l, int r){
   digitalWrite(rHigh, LOW);
   digitalWrite(rLow, HIGH);
   analogWrite(rEnable, rightMotion(r));
+
+  //logMotion(l, r, leftMotion(l), rightMotion(r));
 }
 
 // Backwards motion
@@ -101,11 +105,55 @@ void GoBk(int l, int r){
   analogWrite(rEnable,rightMotion(r));
 }
 
+/**
+* LOGGING
+*/
+
+void logMotion (int l, int r, int lSent, int rSent) {
+  Serial.print("Motor");
+  Serial.print("\t");
+  Serial.print("Left: ");
+  Serial.print(l);
+  Serial.print(" --> ");
+  Serial.print(lSent);
+  Serial.print("\t");
+  Serial.print("Right: ");
+  Serial.print(r);
+  Serial.print(" --> ");
+  Serial.print(rSent);
+  Serial.println();
+}
+
+void listenToSerial(){
+  // if (Serial.available() > 0) {    // is a character available?
+  //   rx_byte = Serial.read();       // get the character
+  //
+  //   // check if a number was received
+  //   if ((rx_byte >= '0') && (rx_byte <= '9')) {
+  //     Serial.print("Number received: ");
+  //     Serial.println(rx_byte);
+  //   }
+  //   else {
+  //     Serial.println("Not a number.");
+  //   }
+  // } // end: if (Serial.available() > 0
+  while (Serial.available() > 0) { // if any data available
+   char incomingByte = Serial.read(); // read byte
+   Serial.write(incomingByte); // send it back
+ }
+}
+
 
 /**
 * MAIN
 */
 
 void loop() {
-  GoFw(0, 0); //min 130 mx 255
+
+  int motion_left = 0;
+  int motion_right = 0;
+
+  listenToSerial();
+
+  GoFw(motion_left, motion_right); //min 0 max 100
 }

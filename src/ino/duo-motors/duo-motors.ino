@@ -16,8 +16,8 @@ const int rLow = 5;
 int leftMotorParams [2] = {130, 255};
 int rightMotorParams [2] = {130, 255};
 
-char rx_byte = 0;
 
+byte serialData;
 
 void setup() {
   Serial.begin(9600);
@@ -30,7 +30,7 @@ void setup() {
 }
 
 /*
-* CALIBRATION
+* CALIBRATION METHODS
 */
 
 // Calibrate left motor
@@ -45,12 +45,8 @@ void calibrateRighttMotor(int min, int max){
   rightMotorParams[1] = max;
 }
 
-/*
-* APPLY CALIBRATION
-*/
-
-// Apply linear working curve
-int applyLinearCurve(int min, int max, int value){
+// Apply linear calibration method
+int applyLinearCal(int min, int max, int value){
   if(value == 0){
     return 0;
   }
@@ -65,18 +61,18 @@ int applyLinearCurve(int min, int max, int value){
 
 // Apply linear calibration to the left motor
 int leftMotion(int value){
-  return applyLinearCurve(leftMotorParams[0], leftMotorParams[1], value);
+  return applyLinearCal(leftMotorParams[0], leftMotorParams[1], value);
 }
 
 // Apply linear calibration to right motor
 int rightMotion(int value){
- return applyLinearCurve(rightMotorParams[0], rightMotorParams[1], value);
+ return applyLinearCal(rightMotorParams[0], rightMotorParams[1], value);
 }
 
 /*
 * MOTION CONTROLLERS
 * set goFw(0,0) || goBk(0,0) to stop motion
-* set goFw(100, 100) to have max thrust
+* set goFw(100, 100) to have max thrust forward
 * set goFw(50, 100) to curve left
 * set goFw(100, 50) to curve right
 */
@@ -106,7 +102,7 @@ void GoBk(int l, int r){
 }
 
 /**
-* LOGGING
+* LOGGING METHODS
 */
 
 void logMotion (int l, int r, int lSent, int rSent) {
@@ -124,7 +120,34 @@ void logMotion (int l, int r, int lSent, int rSent) {
   Serial.println();
 }
 
-void listenToSerial(){
+// void listenToSerial(){
+//
+//   delay(3000);
+//   Serial.println("Listening..");
+//
+//   if(Serial.available() > 0){
+//
+//     serialData = Serial.read();
+//
+//     Serial.print("Command:\t");
+//     Serial.println(serialData);
+//
+//
+//
+//
+//     //if(serialData == "0"){
+//     //  goFw(0,0);
+//    // } else if (serialData == "")
+//   }
+
+
+
+ // else {
+ //     Serial.println("Communication lost...");
+ //     goFw(0,0);
+ // }
+
+
   // if (Serial.available() > 0) {    // is a character available?
   //   rx_byte = Serial.read();       // get the character
   //
@@ -137,15 +160,15 @@ void listenToSerial(){
   //     Serial.println("Not a number.");
   //   }
   // } // end: if (Serial.available() > 0
-  while (Serial.available() > 0) { // if any data available
-   char incomingByte = Serial.read(); // read byte
-   Serial.write(incomingByte); // send it back
- }
-}
+  // while (Serial.available() > 0) { // if any data available
+  // char incomingByte = Serial.read(); // read byte
+  // Serial.write(incomingByte); // send it back
+ //}
+//}
 
 
 /**
-* MAIN
+* MAIN PROCESS
 */
 
 void loop() {

@@ -2,10 +2,10 @@ char serialData;
 int pin = 2;
 
 void setup() {
-Serial.begin(9600);              //Starting serial communication
+Serial.begin(9600);
 pinMode(pin, OUTPUT);
 }
-  
+
 void loop() {
 
   delay(1000);
@@ -23,8 +23,8 @@ void loop() {
     } else if (serialData == '0'){
       Serial.println("low");
       digitalWrite(pin, LOW);
-      
+
     }
-    
+
    }
 }

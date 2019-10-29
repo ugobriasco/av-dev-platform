@@ -1,33 +1,62 @@
 # RPI-Arduino communication protocol
 
-Using TLV-BER
+Version 1.0
 
-# Commands
+## C0 - Get Device Information
 
-## 0xC1: getDeviceInfo
-- Lenght: 0 bytes
-- Value: N/A
+## C1 - Calibrate motors
 
+
+## C2 - Go Forwards
+
+Format: C2|LLRR
+Where:
+C2| - Command key
+LL - Left wheel: 2 digits natural number from 00 to 99
+RR - Right wheel: 2 digits natural number from 00 to 99
+
+Examples:
 ```
-  C1 00 00
-  ## Returns specs from device
-  ##  {
-  ##  version: 1.1.0
-  ## }
+  C29999
+  # Go straight forward at max speed (99%)
+
+  C25099
+  # Turn left by a factor 1/2
+
+  C29950
+  # Turn right by a factor 1/2
 ```
 
-## 0xC2: calibrate
-tbd
+## C3 - Go Backwards
 
-## 0xC3: motion
-- Lenght: 2 bytes
-- Value: (first 1 byte left motor, last 2 byte right motor)
+Format: C3|LLRR
+Where:
+C2| - Command key
+LL - Left wheel: 2 digits natural number from 00 to 99
+RR - Right wheel: 2 digits natural number from 00 to 99
 
+Examples:
 ```
-  C3 02 00 00
-  ## Stops motion
+  C29999
+  # Go straight backwards at max speed (99%)
 
-  C3 02 64 64
-  
+  C25099
+  # Turn left by a factor 1/2
+
+  C29950
+  # Turn right by a factor 1/2
+```
+
+## C4 - Stop
+
+Format: C4|
+Where:
+C4| - Command key
+
+
+Examples:
+```
+  C4|
+  # Stop
 
 ```

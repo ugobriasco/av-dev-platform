@@ -12,14 +12,12 @@ const int rEnable = 7;
 const int rHigh = 6;
 const int rLow = 5;
 
-// Default parameters
+//Global variables
 int leftMotorParams [2] = {130, 255};
 int rightMotorParams [2] = {130, 255};
+int motion_direction = 0; //0 fw, 1 bk
 int motion_left = 0;
 int motion_right = 0;
-
-//Global variables
-
 byte serialData;
 
 void setup() {
@@ -85,10 +83,12 @@ void GoFw(int l, int r){
   digitalWrite(lHigh, LOW);
   digitalWrite(lLow, HIGH);
   analogWrite(lEnable, leftMotion(l));
+  // analogWrite(lEnable, 255); max fw
 
   digitalWrite(rHigh, LOW);
   digitalWrite(rLow, HIGH);
   analogWrite(rEnable, rightMotion(r));
+  //analogWrite(rEnable, 255); max fw
 
   logMotion(l, r, leftMotion(l), rightMotion(r));
 }
@@ -130,5 +130,10 @@ void logMotion (int l, int r, int lSent, int rSent) {
 
 void loop() {
   listenToSerial();
-  GoFw(motion_left, motion_right); //min 0 max 100
+  if(motion_direction == 0){
+     GoFw(motion_left, motion_right); //min 0 max 100
+  } else {
+     GoBk(motion_left, motion_right); //min 0 max 100
+  }
+
 }

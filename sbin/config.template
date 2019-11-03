@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+REMOTE_APP_DIR=/home/pi/Desktop
+LOCAL_APP_DIR=../src/opencv
+REMOTE_USER=pi
+REMOTE_HOST=192.168.0.52

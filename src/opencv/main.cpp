@@ -14,8 +14,9 @@ using namespace raspicam;
 Mat frame, matrix, framePerspective, frameThreshold, frameCanny, frameFinal, frameFinalDuplicate;
 Mat ROIlane;
 vector<int> histogramLane;
-int lanePosition;
+int lanePosition, frameCenter, deviation;
 RaspiCam_Cv Camera;
+stringstream deviationStream;
 
 Point2f Source[] = {
 	Point2f(70,160),
@@ -69,7 +70,10 @@ void Threshold(){
 
 //Histogram
 void Histogram(){
-	histogramLane.resize(360); //frame.size().width
+
+	//frame.size().width == 360;
+
+	histogramLane.resize(360);
 	histogramLane.clear();
 
 	for(int i=0; i<360; i++){ // frame.size().width
@@ -84,7 +88,12 @@ void LaneFinder(){
 	leftPtr = max_element(histogramLane.begin(), histogramLane.begin() + 200);
 	lanePosition = distance(histogramLane.begin(), leftPtr);
 
+	frameCenter = 180;
+
 	line(frameFinal, Point2f(lanePosition, 0), Point2f(lanePosition, 240), Scalar(0,255,0), 2);
+	line(frameFinal, Point2f(frameCenter, 0), Point2f(frameCenter, 240), Scalar(255,255,0), 2);
+
+	deviation = lanePosition - frameCenter;
 
 }
 
@@ -129,11 +138,19 @@ int main(int argc, char **argv)
 	while(1) {
 		auto start = std::chrono::system_clock::now();
 
+		// Image processing
 		Capture();
 		BirdsEye();
 		Threshold();
 		Histogram();
 		LaneFinder();
+
+
+		// Display deviation from center line
+		deviationStream.str("");
+		deviationStream.clear();
+		deviationStream<<"Deviation: "<<deviation<<"px";
+		putText(frame, deviationStream.str(), Point2f(1,50), 0, 1, Scalar(255,255,0), 2);
 
 		//Log FPS
 		auto end = std::chrono::system_clock::now();

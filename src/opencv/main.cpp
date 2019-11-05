@@ -11,7 +11,10 @@ using namespace std;
 using namespace cv;
 using namespace raspicam;
 
-Mat frame;
+Mat frame, matrix, framePerspective, frameThreshold, frameCanny, frameFinal, frameFinalDuplicate;
+Mat ROIlane;
+vector<int> histogramLane;
+int lanePosition;
 RaspiCam_Cv Camera;
 
 Point2f Source[] = {
@@ -21,9 +24,15 @@ Point2f Source[] = {
 	Point2f(360, 230)
 	};
 
+Point2f Destination[] = {
+	Point2f(60,0),
+	Point2f(300, 0),
+	Point2f(60,240),
+	Point2f(300, 240)
+	};
 
 void Setup (int argc, char **argv, RaspiCam_Cv &Camera){
-	Camera.set(CAP_PROP_FRAME_WIDTH, ("-w", argc, argv,360));
+	Camera.set(CAP_PROP_FRAME_WIDTH, ("-w", argc, argv, 360));
 	Camera.set(CAP_PROP_FRAME_HEIGHT, ("-h", argc, argv, 240));
 	Camera.set(CAP_PROP_BRIGHTNESS, ("-br", argc, argv, 50));
 	Camera.set(CAP_PROP_CONTRAST, ("-co", argc, argv, 50));
@@ -32,12 +41,50 @@ void Setup (int argc, char **argv, RaspiCam_Cv &Camera){
 	Camera.set(CAP_PROP_FPS, ("-fps",argc, argv, 0));
 }
 
-// Define area of interest
-void Perspective(){
-	line(frame, Source[0], Source[1], Scalar(0,0,255), 2);
-	line(frame, Source[1], Source[3], Scalar(0,0,255), 2);
-	line(frame, Source[3], Source[2], Scalar(0,0,255), 2);
-	line(frame, Source[2], Source[0], Scalar(0,0,255), 2);
+// Define region of interest
+void BirdsEye(){
+	line(frame, Source[0], Source[1], Scalar(255,0,0), 2);
+	line(frame, Source[1], Source[3], Scalar(255,0,0), 2);
+	line(frame, Source[3], Source[2], Scalar(255,0,0), 2);
+	line(frame, Source[2], Source[0], Scalar(255,0,0), 2);
+
+	matrix = getPerspectiveTransform(Source, Destination);
+	warpPerspective(frame, framePerspective, matrix, Size(360,240));
+	cvtColor(framePerspective, framePerspective, COLOR_RGB2GRAY);
+}
+
+// Image processing
+void Threshold(){
+	//Apply Threshold filter
+	inRange(framePerspective, 5, 50, frameThreshold);
+
+	//Apply Canny filter
+	Canny(framePerspective, frameCanny, 100,500, 3, false);
+
+	//Convolute both images
+	add(frameThreshold, frameCanny, frameFinal);
+	cvtColor(frameFinal, frameFinal, COLOR_GRAY2RGB);
+	cvtColor(frameFinal, frameFinalDuplicate, COLOR_RGB2GRAY); //duplicate frame for histogram only
+}
+
+//Histogram
+void Histogram(){
+	histogramLane.resize(360); //frame.size().width
+	histogramLane.clear();
+
+	for(int i=0; i<360; i++){ // frame.size().width
+		ROIlane = frameFinalDuplicate(Rect(i,140,1,100));
+		divide(255,ROIlane, ROIlane);
+		histogramLane.push_back((int)(sum(ROIlane)[0]));
+	}
+}
+
+void LaneFinder(){
+	vector<int>::iterator leftPtr;
+	leftPtr = max_element(histogramLane.begin(), histogramLane.begin() + 200);
+	lanePosition = distance(histogramLane.begin(), leftPtr);
+
+	line(frameFinal, Point2f(lanePosition, 0), Point2f(lanePosition, 240), Scalar(0,255,0), 2);
 
 }
 
@@ -77,33 +124,40 @@ int main(int argc, char **argv)
 	}
 	cout<<"Camera ID"<<Camera.getId()<<endl;
 
-	/* PICTURE
-	Camera.grab();
-	Camera.retrieve(frame);
-	imshow("frame", frame);
-	waitKey();*/
 
-
-	// VIDEO
+	// Capturing Video
 	while(1) {
 		auto start = std::chrono::system_clock::now();
 
 		Capture();
-		Perspective();
+		BirdsEye();
+		Threshold();
+		Histogram();
+		LaneFinder();
 
+		//Log FPS
 		auto end = std::chrono::system_clock::now();
-
 		std::chrono::duration<double> elapsed_seconds = end-start;
-
 		float t = elapsed_seconds.count();
 		int FPS = 1/t;
 		cout<<"FPS= "<<FPS<<endl;
 
 
+		// Present results
 		namedWindow("RGB", WINDOW_KEEPRATIO);
 		moveWindow("RGB", 50, 100);
-		resizeWindow("RGB",720, 480);
+		resizeWindow("RGB",360, 240);
 		imshow("RGB", frame);
+
+		namedWindow("BirdsEyeB&W", WINDOW_KEEPRATIO);
+		moveWindow("BirdsEyeB&W", 410, 100);
+		resizeWindow("BirdsEyeB&W",360, 240);
+		imshow("BirdsEyeB&W", framePerspective);
+
+		namedWindow("ThresholdFilter", WINDOW_KEEPRATIO);
+		moveWindow("ThresholdFilter", 410, 360);
+		resizeWindow("ThresholdFilter",360, 240);
+		imshow("ThresholdFilter", frameFinal);
 
 		waitKey(1);
 	}

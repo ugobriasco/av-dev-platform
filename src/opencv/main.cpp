@@ -85,8 +85,8 @@ void Histogram(){
 
 void LaneFinder(){
 	vector<int>::iterator leftPtr;
-	leftPtr = max_element(histogramLane.begin(), histogramLane.begin() + 200);
-	lanePosition = distance(histogramLane.begin(), leftPtr);
+	leftPtr = max_element(histogramLane.begin(), histogramLane.begin() + 360);
+	lanePosition = distance(histogramLane.begin(), leftPtr) + 16; //Calibrated
 
 	frameCenter = 180;
 

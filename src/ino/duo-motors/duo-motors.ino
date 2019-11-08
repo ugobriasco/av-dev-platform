@@ -21,7 +21,7 @@ int motion_right = 0;
 byte serialData;
 
 void setup() {
-  Serial.begin(57600); //Baud 9600
+  Serial.begin(57600); //Baud
   pinMode(lEnable, OUTPUT);
   pinMode(lHigh, OUTPUT);
   pinMode(lLow, OUTPUT);

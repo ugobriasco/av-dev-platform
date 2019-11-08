@@ -39,7 +39,7 @@ using namespace raspicam;
 
 //PARAMS - serial com
 #define CPORT 16
-#define BDRATE 57600 /* 9600 baud */
+#define BDRATE 57600 /* baud */
 #define BUF_SIZE 128
 
 //GLOBAL image processing
@@ -63,8 +63,10 @@ Point2f Destination[] = {
 	};
 
 //GLOBAL serial com
+int poll;
 
 
+// Setup camera
 void Setup (int argc, char **argv, RaspiCam_Cv &Camera){
 	Camera.set(CAP_PROP_FRAME_WIDTH, ("-w", argc, argv, 360));
 	Camera.set(CAP_PROP_FRAME_HEIGHT, ("-h", argc, argv, 240));
@@ -219,11 +221,10 @@ int main(int argc, char **argv){
 		LaneFinder();
 
 		//Serial Com
-		int n = RS232_PollComport(CPORT, str_recv, (int)BUF_SIZE);
-		if(n > 0){
-	      str_recv[n] = 0;   /* always put a "null" at the end of a string! */
-	      printf("Received %i bytes: '%s'\n", n, (char *)str_recv);
-				// usleep(1000000);  /* waits for reply 1000ms */
+		poll = RS232_PollComport(CPORT, str_recv, (int)BUF_SIZE);
+		if(poll > 0){
+	      str_recv[poll] = 0;   /* always put a "null" at the end of a string! */
+	      printf("ino-in[%i bytes]%s", poll, (char *)str_recv);
 		}
 
 		//Log FPS

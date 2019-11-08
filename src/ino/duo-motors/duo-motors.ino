@@ -21,7 +21,7 @@ int motion_right = 0;
 byte serialData;
 
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(57600); //Baud 9600
   pinMode(lEnable, OUTPUT);
   pinMode(lHigh, OUTPUT);
   pinMode(lLow, OUTPUT);
@@ -109,16 +109,14 @@ void GoBk(int l, int r){
 */
 
 void logMotion (int l, int r, int lSent, int rSent) {
-  Serial.print("Motor");
-  Serial.print("\t");
-  Serial.print("Left: ");
+  Serial.print("Motor:");
+  Serial.print("L:");
   Serial.print(l);
-  Serial.print(" --> ");
+  Serial.print("=");
   Serial.print(lSent);
-  Serial.print("\t");
-  Serial.print("Right: ");
+  Serial.print("R:");
   Serial.print(r);
-  Serial.print(" --> ");
+  Serial.print("=");
   Serial.print(rSent);
   Serial.println();
 }

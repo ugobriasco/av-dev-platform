@@ -13,5 +13,5 @@ echo '🧠 Brain-untar DONE'
 
 echo '🧠 Brain-compile START'
 cd ./brain-dist
-g++ $(pkg-config opencv4 --cflags --libs) -o g++ $(pkg-config raspicam --cflags --libs) -o main main.cpp
+g++ $(pkg-config opencv4 --cflags --libs) -o g++ $(pkg-config raspicam --cflags --libs) -o main main.cpp rs232.c
 echo '🧠 Brain-compile DONE'

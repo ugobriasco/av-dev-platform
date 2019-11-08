@@ -5,7 +5,7 @@ String data;
 void listenToSerial(){
 
   delay(500);
-  Serial.println("Listening...");
+  //Serial.println("Listening...");
 
   if(Serial.available() > 0 ){
 
@@ -21,14 +21,14 @@ void listenToSerial(){
     // C0 |
     // command |
     if(cmd =="C0"){
-      println("Version 0.0.0");
+      Serial.println("Version 0.0.1");
     }
 
     // Calibrate
     // C1 | lll LLL rrr RRR
     // command | left_min (3 digidt) left_max(3 digits) right_min (3 digits) right_max(3 digits))
     else if(cmd == "C1"){
-        println("Calibrate");
+        Serial.println("Calibrate");
         //todo: implement calibration
     }
 
@@ -52,7 +52,7 @@ void listenToSerial(){
 
     // Stop
     // C4 |
-    // command | 
+    // command |
     else if(cmd == "C4"){
       motion_direction = 0;
       motion_left  = 0;

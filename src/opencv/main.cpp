@@ -44,10 +44,10 @@ using namespace raspicam;
 #define BUF_SIZE 128
 
 //PARAMS - motion
-#define THRUST_MAX 40 //max thrust [%] of each motor
-#define THRUST_MIN 20 //min thrust [%] of each motor
-#define DEV_MAX 140 //max deviation ±140px from current bird's eye settings (±30deg)
-#define DEV_CUT 50 //deviation where convergence thrust should be max
+#define DEV_MAX 102 //max deviation ±140px from current bird's eye settings (±30deg)
+#define CONV_1 30//deviation which triggers the first level of convergence
+#define CONV_2 80//deviation which triggers the second level of convergence
+
 
 //GLOBAL image processing
 Mat frame, matrix, framePerspective, frameThreshold, frameCanny, frameFinal, frameFinalDuplicate;
@@ -75,6 +75,7 @@ int poll;
 //GLOBAL motion
 std::string command;
 ostringstream buffer;
+int counter = 0;
 
 
 // Setup camera
@@ -168,55 +169,55 @@ void LaneFinder(){
 
 }
 
-string IntToString(int a){
-    buffer << a;
-    return buffer.str();
-}
+// string IntToString(int a){
+//     buffer << a;
+//     return buffer.str();
+// }
 
 // regulate the thrust of left/right engine
-void changeMotion(int left, int right){
-	command = "C2|";
+// void changeMotion(int left, int right){
+// 	command = "C2|";
+//
+// 	//Accept only int between 0 and 99
+// 	if(left < 0 || right<0 || left>99 || right>99){
+// 		return;
+// 	}
+// 	//parse to sting mantaining 2 digits
+// 	else if (left<10 && right<10){
+// 		command += "0";
+// 		command += IntToString(left);
+// 		command += "0";
+// 		command += IntToString(right);
+// 	}
+//
+// 	else if(left<10 && right >=10){
+// 		command += "0";
+// 		command += IntToString(left);
+// 		command += IntToString(right);
+// 	}
+//
+// 	else if(left>=10 && right < 10){
+// 		command += IntToString(left);
+// 		command += "0";
+// 		command += IntToString(right);
+// 	}
+//
+// 	else {
+// 		command += IntToString(left);
+// 		command += IntToString(right);
+// 	}
+//
+// 	//send command via serial
+// 	//RS232_cputs(CPORT,"C0|0000"); // sends string on serial
+//
+// 	//log command
+// 	cout<<"rpi:"<<command<<endl;
+// }
 
-	//Accept only int between 0 and 99
-	if(left < 0 || right<0 || left>99 || right>99){
-		return;
-	}
-	//parse to sting mantaining 2 digits
-	else if (left<10 && right<10){
-		command += "0";
-		command += IntToString(left);
-		command += "0";
-		command += IntToString(right);
-	}
-
-	else if(left<10 && right >=10){
-		command += "0";
-		command += IntToString(left);
-		command += IntToString(right);
-	}
-
-	else if(left>=10 && right < 10){
-		command += IntToString(left);
-		command += "0";
-		command += IntToString(right);
-	}
-
-	else {
-		command += IntToString(left);
-		command += IntToString(right);
-	}
-
-	//send command via serial
-	//RS232_cputs(CPORT,"C0|0000"); // sends string on serial
-
-	//log command
-	cout<<"rpi:"<<command<<endl;
-}
-
-int setConvergence(int deviation){
-	//TODO: calculate THRUST_MAX - deviation * (THRUST_MAX - THRUST_MIN)/DEV_CUT);
-	return 10;
-}
+// int setConvergence(int deviation){
+// 	//TODO: calculate THRUST_MAX - deviation * (THRUST_MAX - THRUST_MIN)/DEV_CUT);
+// 	return 10;
+// }
 
 void ConvergeToLane(){
 
@@ -243,21 +244,38 @@ void ConvergeToLane(){
 	// 	changeMotion(THRUST_MAX, setConvergence(deviation));
 	// }
 
-	if(abs(deviation) > DEV_MAX){
+
+	if(deviation == 0){
+		RS232_cputs(CPORT,"C2|3030");
+	}
+	//if deviation negative turn left
+	else if(deviation < 0 && deviation >= -CONV_1){
+		RS232_cputs(CPORT,"C2|2530");
+	}
+	//if deviation negative go left 2
+	else if(deviation < -CONV_1 && deviation >=-CONV_2){
+		RS232_cputs(CPORT,"C2|1530");
+	}
+	//if deviation negative go left 3
+	else if(deviation < -CONV_2 && abs(deviation) < DEV_MAX){
+		RS232_cputs(CPORT,"C2|0530");
+	}
+	//if deviation positive turn right
+	else if(deviation > 0 & deviation <= CONV_1){
+		RS232_cputs(CPORT,"C2|3025");
+	}
+	//if deviation positive turn right 2
+	else if(deviation > CONV_1 && deviation <= CONV_2){
+		RS232_cputs(CPORT,"C2|3015");
+	}
+	//if deviation positive turn right 3
+	else if(deviation > CONV_2 && abs(deviation) < DEV_MAX){
+		RS232_cputs(CPORT,"C2|3005");
+	}
+	// In case of DEV_MAX, stop the car
+	else{
 		RS232_cputs(CPORT,"C2|0000");
 		cout<<"rpi: lane lost "<<endl;
-	}
-	//if deviation negative go left
-	else if(deviation < 0){
-		RS232_cputs(CPORT,"C2|2050");
-	}
-	//if deviation positive go right
-	else if(deviation < 0){
-		RS232_cputs(CPORT,"C2|5020");
-	}
-	// if centered then move forward
-	else{
-		RS232_cputs(CPORT,"C2|5050");
 	}
 }
 
@@ -326,11 +344,11 @@ int main(int argc, char **argv){
 		LaneFinder();
 		displayResults();
 
-		//Motion controller
-		RS232_cputs(CPORT,"C3|5050"); // sends string on serial
-		usleep(2000000);
-
-
+		//Motion controller, kick in once every 10 iterations
+		if(counter > 10){
+			ConvergeToLane();
+			counter = 0;
+		}
 
 		//Serial Com
 		poll = RS232_PollComport(CPORT, str_recv, (int)BUF_SIZE);
@@ -339,17 +357,13 @@ int main(int argc, char **argv){
 	      printf("ino[%i bytes]%s", poll, (char *)str_recv);
 		}
 
-
-		//ConvergeToLane();
-		//usleep(500);
-
 		//Log FPS
 		// auto end = std::chrono::system_clock::now();
 		// std::chrono::duration<double> elapsed_seconds = end-start;
 		// float t = elapsed_seconds.count();
 		// int FPS = 1/t;
 		// cout<<"cam-i "<<FPS<<" fps"<<endl;
-
+		counter++;
 		waitKey(1);
 	}
 

@@ -345,7 +345,7 @@ int main(int argc, char **argv){
 		displayResults();
 
 		//Motion controller, kick in once every 10 iterations
-		if(counter > 10){
+		if(counter > 15){
 			ConvergeToLane();
 			counter = 0;
 		}

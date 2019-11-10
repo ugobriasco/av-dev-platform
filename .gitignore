@@ -1,3 +1,4 @@
 config.sh
 *dist
 *package.tgz
+.DS_Store

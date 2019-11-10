@@ -1,6 +1,7 @@
-# RPI-Arduino communication protocol
+# RPI-Arduino serial communication protocol
 
 Version 1.0
+Applicable models: turtle-s
 
 ## C0 - Get Device Information
 

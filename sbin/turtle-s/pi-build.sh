@@ -3,11 +3,11 @@
 echo 'Untar package'
 set -x
 cd /home/pi/Desktop
-tar zxvf brain-package.tgz -C .
-chmod +x ./brain-dist
-rm brain-package.tgz
-chmod +x ./brain-dist
+tar zxvf turtle-package.tgz -C .
+chmod +x ./turtle-dist
+rm turtle-package.tgz
+chmod +x ./turtle-dist
 
-echo 'Compile the brain'
-cd ./brain-dist
+echo 'Compile the turtle'
+cd ./turtle-dist
 g++ $(pkg-config opencv4 --cflags --libs) -o g++ $(pkg-config raspicam --cflags --libs) -o main main.cpp rs232.c

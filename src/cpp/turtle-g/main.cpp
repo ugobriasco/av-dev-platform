@@ -34,11 +34,18 @@
 #include <ctime>
 
 // Dependancies for motion control
-#include "rs232.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-#include <sstream>
+/******
+* NOTE: To compile programs with wiringPi, you need to add:
+*    -lwiringPi
+*  to your compile line(s) To use the Gertboard, MaxDetect, etc.
+*  code (the devLib), you need to also add:
+*    -lwiringPiDev
+*  to your compile line(s).
+*
+*******/
+#include <wiringPi.h>
+#include <softPwm.h>
+
 
 // Namespaces
 using namespace std;
@@ -59,10 +66,26 @@ using namespace raspicam;
 #define CANNY_LOW_THRESHOLD_RATIO 500
 #define CANNY_KERNEL_SIZE 3
 
-//PARAMS - motion
+//PARAMS -ConvergeToLane
 #define DEV_MAX 102 //max deviation ±140px from current bird's eye settings (±30deg)
 #define CONV_1 30//deviation which triggers the first level of convergence
 #define CONV_2 80//deviation which triggers the second level of convergence
+
+//PARAMS -MOTION
+#define THRUST_1 30
+#define THRUST_2 50
+#define THRUST_3 60
+#define THRUST_4 70
+
+
+//PARAMS WiringPI pins
+#define L_ENABLE 30
+#define L_HIGH 21
+#define L_LOW 22
+#define R_LOW 23
+#define R_HIGH 24
+#define R_ENABLE 25
+
 
 //GLOBAL image processing
 Mat frame, matrix, framePerspective, frameThreshold, frameCanny, frameFinal, frameFinalDuplicate;
@@ -85,7 +108,7 @@ Point2f Destination[] = {
 	};
 
 // Setup camera
-void Setup (int argc, char **argv, RaspiCam_Cv &Camera){
+void setupCamera (int argc, char **argv, RaspiCam_Cv &Camera){
 	Camera.set(CAP_PROP_FRAME_WIDTH, ("-w", argc, argv, 360));
 	Camera.set(CAP_PROP_FRAME_HEIGHT, ("-h", argc, argv, 240));
 	Camera.set(CAP_PROP_BRIGHTNESS, ("-br", argc, argv, BRIGHTNESS));
@@ -96,7 +119,7 @@ void Setup (int argc, char **argv, RaspiCam_Cv &Camera){
 }
 
 // Rotate image by a given angle
-Mat rotate(Mat src, double angle){
+Mat rotateImage(Mat src, double angle){
     Mat dst;
     Point2f pt(src.cols/2., src.rows/2.);
     Mat r = getRotationMatrix2D(pt, angle, 1.0);
@@ -105,7 +128,7 @@ Mat rotate(Mat src, double angle){
 }
 
 // Get image from raspicam
-void Capture(){
+void captureImage(){
 	Camera.grab();
 	Camera.retrieve(frame);
 
@@ -116,11 +139,11 @@ void Capture(){
 	flip(frame, frame,-1);
 
   // Adjust offset
-  frame = rotate(frame, 3);
+  frame = rotateImage(frame, 3);
 }
 
 // Define region of interest
-void BirdsEye(){
+void applyBirdsEye(){
 	line(frame, Source[0], Source[1], Scalar(255,0,0), 2);
 	line(frame, Source[1], Source[3], Scalar(255,0,0), 2);
 	line(frame, Source[3], Source[2], Scalar(255,0,0), 2);
@@ -132,7 +155,7 @@ void BirdsEye(){
 }
 
 // Image processing
-void Threshold(){
+void applyThresholdFilter(){
 	//Apply Threshold filter
 	inRange(framePerspective, THRESHOLD_S, THRESHOLD_H, frameThreshold);
 
@@ -146,7 +169,7 @@ void Threshold(){
 }
 
 //Histogram
-void Histogram(){
+void histogram(){
 
 	//frame.size().width == 360;
 
@@ -161,7 +184,7 @@ void Histogram(){
 }
 
 // Defines the deviiation between center of vehicles and a black lane on the floor
-void LaneFinder(){
+void laneFinder(){
 	vector<int>::iterator leftPtr;
 	leftPtr = max_element(histogramLane.begin(), histogramLane.begin() + 360);
 	lanePosition = distance(histogramLane.begin(), leftPtr) + 16; //Calibrated
@@ -175,37 +198,78 @@ void LaneFinder(){
 
 }
 
-void ConvergeToLane(){
+void initWiringPi(){
+	//WiringPI setup
+	wiringPiSetup();
+	printf("wiringPi is working!\n");
+
+	// Map PinMode
+	pinMode(L_HIGH, OUTPUT);
+	pinMode(L_LOW, OUTPUT);
+	pinMode(R_LOW, OUTPUT);
+	pinMode(R_HIGH, OUTPUT);
+	softPwmCreate(L_ENABLE, 100, 100);
+	softPwmCreate(R_ENABLE, 100, 100);
+
+	// Reset pins
+	digitalWrite(L_HIGH, LOW);
+	digitalWrite(L_LOW, LOW);
+	digitalWrite(R_HIGH, LOW);
+	digitalWrite(R_LOW, LOW);
+}
+
+void convergeToLane(){
+
+	digitalWrite(L_HIGH, HIGH);
+	digitalWrite(L_LOW, LOW);
+	digitalWrite(R_HIGH, HIGH);
+	digitalWrite(R_LOW, LOW);
 
 	if(deviation == 0){
+		softPwmWrite(L_ENABLE, THRUST_4);
+		softPwmWrite(R_ENABLE, THRUST_4);
     cout<<"Converged"<<endl;
 	}
 	//if deviation negative turn left
 	else if(deviation < 0 && deviation >= -CONV_1){
+		softPwmWrite(L_ENABLE, THRUST_3);
+		softPwmWrite(R_ENABLE, THRUST_4);
 		cout<<"Left converge I"<<endl;
 	}
 	//if deviation negative go left 2
 	else if(deviation < -CONV_1 && deviation >=-CONV_2){
+		softPwmWrite(L_ENABLE, THRUST_2);
+		softPwmWrite(R_ENABLE, THRUST_4);
 		cout<<"Left converge II"<<endl;
 	}
 	//if deviation negative go left 3
 	else if(deviation < -CONV_2 && abs(deviation) < DEV_MAX){
+		softPwmWrite(L_ENABLE, THRUST_1);
+		softPwmWrite(R_ENABLE, THRUST_4);
 		cout<<"Left converge III"<<endl;
 	}
 	//if deviation positive turn right
 	else if(deviation > 0 & deviation <= CONV_1){
+		softPwmWrite(L_ENABLE, THRUST_4);
+		softPwmWrite(R_ENABLE, THRUST_3);
 		cout<<"Right converge I"<<endl;
 	}
 	//if deviation positive turn right 2
 	else if(deviation > CONV_1 && deviation <= CONV_2){
+		softPwmWrite(L_ENABLE, THRUST_4);
+		softPwmWrite(R_ENABLE, THRUST_2);
 			cout<<"Right converge II"<<endl;
 	}
 	//if deviation positive turn right 3
 	else if(deviation > CONV_2 && abs(deviation) < DEV_MAX){
+		softPwmWrite(L_ENABLE, THRUST_4);
+		softPwmWrite(R_ENABLE, THRUST_1);
 			cout<<"Right converge III"<<endl;
 	}
 	// In case of DEV_MAX, stop the car
 	else{
+		softPwmWrite(L_ENABLE, 0);
+		softPwmWrite(R_ENABLE, 0);
 		cout<<"Lane lost"<<endl;
 	}
 }
@@ -239,8 +303,8 @@ void displayResults(){
 
 int main(int argc, char **argv){
 
-	//Camera setup
-	Setup(argc, argv, Camera);
+	//Setup camera
+	setupCamera(argc, argv, Camera);
 	cout<<"Connecting to camera"<<endl;
 	if (!Camera.open()){
 		cout<<"Cannot connect to the camera"<<endl;
@@ -248,19 +312,22 @@ int main(int argc, char **argv){
 	}
 	cout<<"Camera ID"<<Camera.getId()<<endl;
 
+	// Setup communication with H-Bridge
+	initWiringPi();
+
 	while(1) {
 		//auto start = std::chrono::system_clock::now();
 
 		// Image processing
-		Capture();
-		BirdsEye();
-		Threshold();
-		Histogram();
-		LaneFinder();
+		captureImage();
+		applyBirdsEye();
+		applyThresholdFilter();
+		histogram();
+		laneFinder();
 		displayResults();
 
 		//Motion controller
-    ConvergeToLane();
+    convergeToLane();
 
 		//Log FPS
 		// auto end = std::chrono::system_clock::now();

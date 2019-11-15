@@ -15,5 +15,5 @@ tar -czf turtle-package.tgz turtle-dist
 
 echo 'Start deployment'
 scp turtle-package.tgz $REMOTE_USER@$REMOTE_HOST:$REMOTE_APP_DIR && \
-ssh $REMOTE_USER@$REMOTE_HOST 'bash -s' < ./sbin/turtle-s/pi-build.sh
+ssh $REMOTE_USER@$REMOTE_HOST 'bash -s' < ./sbin/turtle-g/pi-build.sh
 echo 'Enjoy!';

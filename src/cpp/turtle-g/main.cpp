@@ -52,6 +52,11 @@ using namespace std;
 using namespace cv;
 using namespace raspicam;
 
+
+/****************************************************
+* IMAGE PROCESSING CONFIGURATION
+*****************************************************/
+
 //PARAMS - Camera
 #define BRIGHTNESS 50
 #define CONTRAST 50
@@ -66,26 +71,37 @@ using namespace raspicam;
 #define CANNY_LOW_THRESHOLD_RATIO 500
 #define CANNY_KERNEL_SIZE 3
 
-//PARAMS -ConvergeToLane
-#define DEV_MAX 102 //max deviation ±140px from current bird's eye settings (±30deg)
-#define CONV_1 30//deviation which triggers the first level of convergence
-#define CONV_2 80//deviation which triggers the second level of convergence
+/****************************************************
+* H-BRIDGE / MOTORS CONFIGURATION
+*****************************************************/
 
 //PARAMS -MOTION
-#define THRUST_1 30
-#define THRUST_2 50
+#define THRUST_1 30 //MIN THRUST in %
+#define THRUST_2 45
 #define THRUST_3 60
-#define THRUST_4 70
-
+#define THRUST_4 80 //MAX THRUST in %
 
 //PARAMS WiringPI pins
 #define L_ENABLE 30
-#define L_HIGH 21
-#define L_LOW 22
-#define R_LOW 23
-#define R_HIGH 24
+#define L_HIGH 22
+#define L_LOW 21
+#define R_LOW 24
+#define R_HIGH 23
 #define R_ENABLE 25
 
+/****************************************************
+* PRIMARRY OPERATING FUNCTIONS
+*****************************************************/
+
+//PARAMS -convergeToLane
+#define DEV_MAX 102 //max deviation ±140px from current bird's eye settings (±30deg)
+#define CONV_1 30   //deviation which triggers the first level of convergence
+#define CONV_2 80   //deviation which triggers the second level of convergence
+
+
+/****************************************************
+* GLOBAL VARIABLES
+*****************************************************/
 
 //GLOBAL image processing
 Mat frame, matrix, framePerspective, frameThreshold, frameCanny, frameFinal, frameFinalDuplicate;
@@ -94,6 +110,8 @@ vector<int> histogramLane;
 int lanePosition, frameCenter, deviation;
 RaspiCam_Cv Camera;
 stringstream deviationStream;
+
+//ROI SHAPE
 Point2f Source[] = {
 	Point2f(70,160),
 	Point2f(300, 160),
@@ -106,6 +124,10 @@ Point2f Destination[] = {
 	Point2f(60,240),
 	Point2f(300, 240)
 	};
+
+/****************************************************
+* METHODS
+*****************************************************/
 
 // Setup camera
 void setupCamera (int argc, char **argv, RaspiCam_Cv &Camera){
@@ -144,10 +166,10 @@ void captureImage(){
 
 // Define region of interest
 void applyBirdsEye(){
-	line(frame, Source[0], Source[1], Scalar(255,0,0), 2);
-	line(frame, Source[1], Source[3], Scalar(255,0,0), 2);
-	line(frame, Source[3], Source[2], Scalar(255,0,0), 2);
-	line(frame, Source[2], Source[0], Scalar(255,0,0), 2);
+	line(frame, Source[0], Source[1], Scalar(0,255,0), 2);
+	line(frame, Source[1], Source[3], Scalar(0,255,0), 2);
+	line(frame, Source[3], Source[2], Scalar(0,255,0), 2);
+	line(frame, Source[2], Source[0], Scalar(0,255,0), 2);
 
 	matrix = getPerspectiveTransform(Source, Destination);
 	warpPerspective(frame, framePerspective, matrix, Size(360,240));
@@ -183,7 +205,7 @@ void histogram(){
 	}
 }
 
-// Defines the deviiation between center of vehicles and a black lane on the floor
+// Defines the deviation between center of vehicles and a black lane on the floor
 void laneFinder(){
 	vector<int>::iterator leftPtr;
 	leftPtr = max_element(histogramLane.begin(), histogramLane.begin() + 360);
@@ -198,6 +220,7 @@ void laneFinder(){
 
 }
 
+// Initialize serial communication with tghe H-Bridge
 void initWiringPi(){
 	//WiringPI setup
 	wiringPiSetup();
@@ -218,6 +241,7 @@ void initWiringPi(){
 	digitalWrite(R_LOW, LOW);
 }
 
+// Make the rover following a black lane
 void convergeToLane(){
 
 	digitalWrite(L_HIGH, HIGH);
@@ -274,7 +298,7 @@ void convergeToLane(){
 	}
 }
 
-// display what the av sees
+// Display what the rover sees
 void displayResults(){
 
 	// Display deviation from center line
@@ -300,6 +324,11 @@ void displayResults(){
 	imshow("ThresholdFilter", frameFinal);
 
 }
+
+
+/****************************************************
+* MAIN
+*****************************************************/
 
 int main(int argc, char **argv){
 

@@ -82,7 +82,7 @@ int lanePosition, frameCenter, deviation;
 RaspiCam_Cv Camera;
 stringstream deviationStream;
 
-//MOTION
+//Talk to the h-bridge, controlling the movement of the turtle.
 Motion motion;
 
 //ROI SHAPE
@@ -195,57 +195,50 @@ void laneFinder(){
 }
 
 // Make the rover following a black lane
-// void convergeToLane(){
-//
-// 	MOTION_setForward();
-//
-// 	if(deviation == 0){
-// 		MOTION_goForward();
-//     cout<<"Converged"<<endl;
-// 	}
-// 	//if deviation negative turn left
-// 	else if(deviation < 0 && deviation >= -CONV_1){
-// 		softPwmWrite(L_ENABLE, THRUST_3);
-// 		softPwmWrite(R_ENABLE, THRUST_4);
-// 		cout<<"Left converge I"<<endl;
-// 	}
-// 	//if deviation negative go left 2
-// 	else if(deviation < -CONV_1 && deviation >=-CONV_2){
-// 		softPwmWrite(L_ENABLE, THRUST_2);
-// 		softPwmWrite(R_ENABLE, THRUST_4);
-// 		cout<<"Left converge II"<<endl;
-// 	}
-// 	//if deviation negative go left 3
-// 	else if(deviation < -CONV_2 && abs(deviation) < DEV_MAX){
-// 		softPwmWrite(L_ENABLE, THRUST_1);
-// 		softPwmWrite(R_ENABLE, THRUST_4);
-// 		cout<<"Left converge III"<<endl;
-// 	}
-// 	//if deviation positive turn right
-// 	else if(deviation > 0 & deviation <= CONV_1){
-// 		softPwmWrite(L_ENABLE, THRUST_4);
-// 		softPwmWrite(R_ENABLE, THRUST_3);
-// 		cout<<"Right converge I"<<endl;
-// 	}
-// 	//if deviation positive turn right 2
-// 	else if(deviation > CONV_1 && deviation <= CONV_2){
-// 		softPwmWrite(L_ENABLE, THRUST_4);
-// 		softPwmWrite(R_ENABLE, THRUST_2);
-// 			cout<<"Right converge II"<<endl;
-// 	}
-// 	//if deviation positive turn right 3
-// 	else if(deviation > CONV_2 && abs(deviation) < DEV_MAX){
-// 		softPwmWrite(L_ENABLE, THRUST_4);
-// 		softPwmWrite(R_ENABLE, THRUST_1);
-// 			cout<<"Right converge III"<<endl;
-// 	}
-// 	// In case of DEV_MAX, stop the car
-// 	else{
-// 		softPwmWrite(L_ENABLE, 0);
-// 		softPwmWrite(R_ENABLE, 0);
-// 		cout<<"Lane lost"<<endl;
-// 	}
-// }
+void convergeToLane(){
+
+	motion.setForward();
+
+	if(deviation == 0){
+		motion.goStraight();
+    cout<<"Converged"<<endl;
+	}
+	//if deviation negative turn left
+	else if(deviation < 0 && deviation >= -CONV_1){
+		motion.turnLeft(1);
+		cout<<"Left converge I"<<endl;
+	}
+	//if deviation negative go left 2
+	else if(deviation < -CONV_1 && deviation >=-CONV_2){
+		motion.turnLeft(2);
+		cout<<"Left converge II"<<endl;
+	}
+	//if deviation negative go left 3
+	else if(deviation < -CONV_2 && abs(deviation) < DEV_MAX){
+		motion.turnLeft(3);
+		cout<<"Left converge III"<<endl;
+	}
+	//if deviation positive turn right
+	else if(deviation > 0 & deviation <= CONV_1){
+		motion.turnRight(1);
+		cout<<"Right converge I"<<endl;
+	}
+	//if deviation positive turn right 2
+	else if(deviation > CONV_1 && deviation <= CONV_2){
+		motion.turnRight(2);
+		cout<<"Right converge II"<<endl;
+	}
+	//if deviation positive turn right 3
+	else if(deviation > CONV_2 && abs(deviation) < DEV_MAX){
+		motion.turnRight(3);
+		cout<<"Right converge III"<<endl;
+	}
+	// In case of DEV_MAX, stop the car
+	else{
+		motion.stop();
+		cout<<"Lane lost"<<endl;
+	}
+}
 
 // Display what the rover sees
 void displayResults(){
@@ -291,7 +284,6 @@ int main(int argc, char **argv){
 	cout<<"Camera ID"<<Camera.getId()<<endl;
 
 	while(1) {
-		//auto start = std::chrono::system_clock::now();
 
 		// Image processing
 		captureImage();
@@ -301,17 +293,9 @@ int main(int argc, char **argv){
 		laneFinder();
 		displayResults();
 
-		//Motion controller
-		//convergeToLane();
-		motion.setForward();
-	  motion.goStraight();
+		//Tasks
+		convergeToLane();
 
-		//Log FPS
-		// auto end = std::chrono::system_clock::now();
-		// std::chrono::duration<double> elapsed_seconds = end-start;
-		// float t = elapsed_seconds.count();
-		// int FPS = 1/t;
-		// cout<<"cam-i "<<FPS<<" fps"<<endl;
 		waitKey(1);
 	}
 

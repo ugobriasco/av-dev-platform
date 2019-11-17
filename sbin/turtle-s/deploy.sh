@@ -8,8 +8,8 @@ echo 'Build package'
 rm -rf ./turtle-dist
 mkdir ./turtle-dist
 cp ./src/cpp/turtle-s/main.cpp ./turtle-dist/main.cpp
-cp ./src/cpp/lib/rs232.c ./turtle-dist/rs232.c
-cp ./src/cpp/lib/rs232.h ./turtle-dist/rs232.h
+cp ./src/cpp/vendor/rs232.c ./turtle-dist/rs232.c
+cp ./src/cpp/vendor/rs232.h ./turtle-dist/rs232.h
 
 mkdir ./turtle-dist/utils
 cp ./src/py/send-motion.py ./turtle-dist/utils/send-motion.py

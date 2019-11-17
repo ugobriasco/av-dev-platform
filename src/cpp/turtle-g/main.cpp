@@ -33,18 +33,7 @@
 #include <chrono>
 #include <ctime>
 
-// Dependancies for motion control
-/******
-* NOTE: To compile programs with wiringPi, you need to add:
-*    -lwiringPi
-*  to your compile line(s) To use the Gertboard, MaxDetect, etc.
-*  code (the devLib), you need to also add:
-*    -lwiringPiDev
-*  to your compile line(s).
-*
-*******/
-#include <wiringPi.h>
-#include <softPwm.h>
+#include "motion.h"
 
 
 // Namespaces
@@ -72,24 +61,6 @@ using namespace raspicam;
 #define CANNY_KERNEL_SIZE 3
 
 /****************************************************
-* H-BRIDGE / MOTORS CONFIGURATION
-*****************************************************/
-
-//PARAMS -MOTION
-#define THRUST_1 30 //MIN THRUST in %
-#define THRUST_2 45
-#define THRUST_3 60
-#define THRUST_4 80 //MAX THRUST in %
-
-//PARAMS WiringPI pins
-#define L_ENABLE 30
-#define L_HIGH 22
-#define L_LOW 21
-#define R_LOW 24
-#define R_HIGH 23
-#define R_ENABLE 25
-
-/****************************************************
 * PRIMARRY OPERATING FUNCTIONS
 *****************************************************/
 
@@ -110,6 +81,9 @@ vector<int> histogramLane;
 int lanePosition, frameCenter, deviation;
 RaspiCam_Cv Camera;
 stringstream deviationStream;
+
+//MOTION
+Motion motion;
 
 //ROI SHAPE
 Point2f Source[] = {
@@ -220,83 +194,58 @@ void laneFinder(){
 
 }
 
-// Initialize serial communication with tghe H-Bridge
-void initWiringPi(){
-	//WiringPI setup
-	wiringPiSetup();
-	printf("wiringPi is working!\n");
-
-	// Map PinMode
-	pinMode(L_HIGH, OUTPUT);
-	pinMode(L_LOW, OUTPUT);
-	pinMode(R_LOW, OUTPUT);
-	pinMode(R_HIGH, OUTPUT);
-	softPwmCreate(L_ENABLE, 100, 100);
-	softPwmCreate(R_ENABLE, 100, 100);
-
-	// Reset pins
-	digitalWrite(L_HIGH, LOW);
-	digitalWrite(L_LOW, LOW);
-	digitalWrite(R_HIGH, LOW);
-	digitalWrite(R_LOW, LOW);
-}
-
 // Make the rover following a black lane
-void convergeToLane(){
-
-	digitalWrite(L_HIGH, HIGH);
-	digitalWrite(L_LOW, LOW);
-	digitalWrite(R_HIGH, HIGH);
-	digitalWrite(R_LOW, LOW);
-
-	if(deviation == 0){
-		softPwmWrite(L_ENABLE, THRUST_4);
-		softPwmWrite(R_ENABLE, THRUST_4);
-    cout<<"Converged"<<endl;
-	}
-	//if deviation negative turn left
-	else if(deviation < 0 && deviation >= -CONV_1){
-		softPwmWrite(L_ENABLE, THRUST_3);
-		softPwmWrite(R_ENABLE, THRUST_4);
-		cout<<"Left converge I"<<endl;
-	}
-	//if deviation negative go left 2
-	else if(deviation < -CONV_1 && deviation >=-CONV_2){
-		softPwmWrite(L_ENABLE, THRUST_2);
-		softPwmWrite(R_ENABLE, THRUST_4);
-		cout<<"Left converge II"<<endl;
-	}
-	//if deviation negative go left 3
-	else if(deviation < -CONV_2 && abs(deviation) < DEV_MAX){
-		softPwmWrite(L_ENABLE, THRUST_1);
-		softPwmWrite(R_ENABLE, THRUST_4);
-		cout<<"Left converge III"<<endl;
-	}
-	//if deviation positive turn right
-	else if(deviation > 0 & deviation <= CONV_1){
-		softPwmWrite(L_ENABLE, THRUST_4);
-		softPwmWrite(R_ENABLE, THRUST_3);
-		cout<<"Right converge I"<<endl;
-	}
-	//if deviation positive turn right 2
-	else if(deviation > CONV_1 && deviation <= CONV_2){
-		softPwmWrite(L_ENABLE, THRUST_4);
-		softPwmWrite(R_ENABLE, THRUST_2);
-			cout<<"Right converge II"<<endl;
-	}
-	//if deviation positive turn right 3
-	else if(deviation > CONV_2 && abs(deviation) < DEV_MAX){
-		softPwmWrite(L_ENABLE, THRUST_4);
-		softPwmWrite(R_ENABLE, THRUST_1);
-			cout<<"Right converge III"<<endl;
-	}
-	// In case of DEV_MAX, stop the car
-	else{
-		softPwmWrite(L_ENABLE, 0);
-		softPwmWrite(R_ENABLE, 0);
-		cout<<"Lane lost"<<endl;
-	}
-}
+// void convergeToLane(){
+//
+// 	MOTION_setForward();
+//
+// 	if(deviation == 0){
+// 		MOTION_goForward();
+//     cout<<"Converged"<<endl;
+// 	}
+// 	//if deviation negative turn left
+// 	else if(deviation < 0 && deviation >= -CONV_1){
+// 		softPwmWrite(L_ENABLE, THRUST_3);
+// 		softPwmWrite(R_ENABLE, THRUST_4);
+// 		cout<<"Left converge I"<<endl;
+// 	}
+// 	//if deviation negative go left 2
+// 	else if(deviation < -CONV_1 && deviation >=-CONV_2){
+// 		softPwmWrite(L_ENABLE, THRUST_2);
+// 		softPwmWrite(R_ENABLE, THRUST_4);
+// 		cout<<"Left converge II"<<endl;
+// 	}
+// 	//if deviation negative go left 3
+// 	else if(deviation < -CONV_2 && abs(deviation) < DEV_MAX){
+// 		softPwmWrite(L_ENABLE, THRUST_1);
+// 		softPwmWrite(R_ENABLE, THRUST_4);
+// 		cout<<"Left converge III"<<endl;
+// 	}
+// 	//if deviation positive turn right
+// 	else if(deviation > 0 & deviation <= CONV_1){
+// 		softPwmWrite(L_ENABLE, THRUST_4);
+// 		softPwmWrite(R_ENABLE, THRUST_3);
+// 		cout<<"Right converge I"<<endl;
+// 	}
+// 	//if deviation positive turn right 2
+// 	else if(deviation > CONV_1 && deviation <= CONV_2){
+// 		softPwmWrite(L_ENABLE, THRUST_4);
+// 		softPwmWrite(R_ENABLE, THRUST_2);
+// 			cout<<"Right converge II"<<endl;
+// 	}
+// 	//if deviation positive turn right 3
+// 	else if(deviation > CONV_2 && abs(deviation) < DEV_MAX){
+// 		softPwmWrite(L_ENABLE, THRUST_4);
+// 		softPwmWrite(R_ENABLE, THRUST_1);
+// 			cout<<"Right converge III"<<endl;
+// 	}
+// 	// In case of DEV_MAX, stop the car
+// 	else{
+// 		softPwmWrite(L_ENABLE, 0);
+// 		softPwmWrite(R_ENABLE, 0);
+// 		cout<<"Lane lost"<<endl;
+// 	}
+// }
 
 // Display what the rover sees
 void displayResults(){
@@ -341,9 +290,6 @@ int main(int argc, char **argv){
 	}
 	cout<<"Camera ID"<<Camera.getId()<<endl;
 
-	// Setup communication with H-Bridge
-	initWiringPi();
-
 	while(1) {
 		//auto start = std::chrono::system_clock::now();
 
@@ -356,7 +302,9 @@ int main(int argc, char **argv){
 		displayResults();
 
 		//Motion controller
-    convergeToLane();
+		//convergeToLane();
+		motion.setForward();
+	  motion.goStraight();
 
 		//Log FPS
 		// auto end = std::chrono::system_clock::now();

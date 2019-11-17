@@ -7,6 +7,8 @@ set -x
 echo 'Build package'
 rm -rf ./turtle-dist
 mkdir ./turtle-dist
+cp ./src/cpp/lib/motion.cpp ./turtle-dist/motion.cpp
+cp ./src/cpp/lib/motion.h ./turtle-dist/motion.h
 cp ./src/cpp/turtle-g/main.cpp ./turtle-dist/main.cpp
 
 echo 'Make tar ball'

@@ -33,6 +33,7 @@
 #include <chrono>
 #include <ctime>
 
+// Dependacies motion control
 #include "motion.h"
 
 
@@ -75,7 +76,7 @@ using namespace raspicam;
 *****************************************************/
 
 //GLOBAL image processing
-Mat frame, matrix, framePerspective, frameThreshold, frameCanny, frameFinal, frameFinalDuplicate;
+Mat frame, frameRGB, matrix, framePerspective, frameThreshold, frameCanny, frameFinal, frameFinalDuplicate;
 Mat ROIlane;
 vector<int> histogramLane;
 int lanePosition, frameCenter, deviation;
@@ -128,9 +129,6 @@ void captureImage(){
 	Camera.grab();
 	Camera.retrieve(frame);
 
-	// Transform image to RGB.
-	cvtColor(frame, frame, COLOR_BGR2RGB);
-
 	// The camera is placed upside-down, thus flip it.
 	flip(frame, frame,-1);
 
@@ -140,13 +138,23 @@ void captureImage(){
 
 // Define region of interest
 void applyBirdsEye(){
+	// Transform image to RGB.
+	cvtColor(frame, frameRGB, COLOR_BGR2RGB);
+
+	// Define ROI
+	line(frameRGB, Source[0], Source[1], Scalar(0,255,0), 2);
+	line(frameRGB, Source[1], Source[3], Scalar(0,255,0), 2);
+	line(frameRGB, Source[3], Source[2], Scalar(0,255,0), 2);
+	line(frameRGB, Source[2], Source[0], Scalar(0,255,0), 2);
+
+	// Copy to the origin
 	line(frame, Source[0], Source[1], Scalar(0,255,0), 2);
 	line(frame, Source[1], Source[3], Scalar(0,255,0), 2);
 	line(frame, Source[3], Source[2], Scalar(0,255,0), 2);
 	line(frame, Source[2], Source[0], Scalar(0,255,0), 2);
 
 	matrix = getPerspectiveTransform(Source, Destination);
-	warpPerspective(frame, framePerspective, matrix, Size(360,240));
+	warpPerspective(frameRGB, framePerspective, matrix, Size(360,240));
 	cvtColor(framePerspective, framePerspective, COLOR_RGB2GRAY);
 }
 
@@ -250,10 +258,10 @@ void displayResults(){
 	putText(frame, deviationStream.str(), Point2f(1,50), 0, 1, Scalar(255,255,0), 2);
 
 	// Present results
-	namedWindow("RGB", WINDOW_KEEPRATIO);
-	moveWindow("RGB", 50, 100);
-	resizeWindow("RGB",360, 240);
-	imshow("RGB", frame);
+	namedWindow("Live", WINDOW_KEEPRATIO);
+	moveWindow("Live", 50, 100);
+	resizeWindow("Live",360, 240);
+	imshow("Live", frame);
 
 	namedWindow("BirdsEyeB&W", WINDOW_KEEPRATIO);
 	moveWindow("BirdsEyeB&W", 410, 100);
@@ -294,7 +302,7 @@ int main(int argc, char **argv){
 		displayResults();
 
 		//Tasks
-		convergeToLane();
+		//convergeToLane();
 
 		waitKey(1);
 	}

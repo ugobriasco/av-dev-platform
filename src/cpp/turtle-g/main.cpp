@@ -36,6 +36,14 @@
 // Dependacies motion control
 #include "motion.h"
 
+// Dependacies manual control
+#include <stdio.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <termios.h>
+#include <unistd.h>
+#include <fcntl.h>
+
 
 // Namespaces
 using namespace std;
@@ -275,6 +283,51 @@ void displayResults(){
 
 }
 
+// Manual control
+int kbhit(){
+  struct termios oldt, newt;
+  int ch;
+  int oldf;
+
+  tcgetattr(STDIN_FILENO, &oldt);
+  newt = oldt;
+  newt.c_lflag &= ~(ICANON | ECHO);
+  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
+  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
+  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+
+  ch = getchar();
+
+  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+  fcntl(STDIN_FILENO, F_SETFL, oldf);
+
+  if(ch != EOF)
+  {
+    //DO whatever you like to do with this charecter ..
+
+		/*
+		* a=97, w=119,d=100,s=115,enter=10,space=32
+		*/
+		if(ch==97){
+			cout<<"left"<<endl;
+		} else if (ch==119){
+			cout<<"forward"<<endl;
+		} else if (ch==100){
+			cout<<"right"<<endl;
+		} else if (ch==115){
+			cout<<"back"<<endl;
+		} else if (ch==10 || ch==32){
+			cout<<"CLICK!"<<endl;
+		} else {
+			cout<<"Stop"<<endl;
+		}
+    ungetc(ch, stdin);
+    return 1;
+  }
+
+  return 0;
+}
+
 
 /****************************************************
 * MAIN
@@ -292,6 +345,14 @@ int main(int argc, char **argv){
 	cout<<"Camera ID"<<Camera.getId()<<endl;
 
 	while(1) {
+
+		//Control manually
+		if(kbhit()){
+			//clearing the buffer
+			char ch = getchar();
+			// printf("you hit keyboard and key = %c\n", ch);
+		}
+
 
 		// Image processing
 		captureImage();

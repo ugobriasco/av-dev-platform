@@ -309,17 +309,24 @@ int kbhit(){
 		* a=97, w=119,d=100,s=115,enter=10,space=32
 		*/
 		if(ch==97){
-			cout<<"left"<<endl;
+			cout<<"  left"<<endl;
+			motion.turnLeft(4);
 		} else if (ch==119){
-			cout<<"forward"<<endl;
+			cout<<"  forward"<<endl;
+			motion.setForward();
+			motion.goStraight();
 		} else if (ch==100){
-			cout<<"right"<<endl;
+			cout<<"  right"<<endl;
+			motion.turnRight(4);
 		} else if (ch==115){
-			cout<<"back"<<endl;
+			cout<<"  back"<<endl;
+			motion.setBackward();
+			motion.goStraight();
 		} else if (ch==10 || ch==32){
-			cout<<"CLICK!"<<endl;
+			cout<<"  CLICK!"<<endl;
 		} else {
-			cout<<"Stop"<<endl;
+			cout<<"  Stop"<<endl;
+			motion.stop();
 		}
     ungetc(ch, stdin);
     return 1;
